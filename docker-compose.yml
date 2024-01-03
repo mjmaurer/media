@@ -1,0 +1,231 @@
+version: '3.9'
+
+services:
+  qbittorrentvpn:
+    image: ghcr.io/binhex/arch-qbittorrentvpn:latest
+    ports:
+      - 51413:51413
+      - 51413:51413/udp
+      - 6881:6881
+      - 6881:6881/udp
+      - 8118:8118
+      - ${QBITTORRENTVPN_PORT_8080}:${QBITTORRENTVPN_PORT_8080}
+    hostname: ${DOCKERHOSTNAME}
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    container_name: qbit
+    environment:
+      - ENABLE_PRIVOXY=${QBITTORRENTVPN_ENABLE_PRIVOXY}
+      - LAN_NETWORK=${LAN_NETWORK}
+      - NAME_SERVERS=${NS1},${NS2}
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - TZ=${TZ}
+      - VPN_CLIENT=${VPN_CLIENT}
+      - VPN_ENABLED=${VPN_ENABLE}
+      - VPN_OPTIONS=${VPN_OPTIONS}
+      - VPN_PASS=${VPN_PASS}
+      - VPN_PROV=${VPN_PROV}
+      - VPN_USER=${VPN_USER}
+      - WEBUI_PORT=${QBITTORRENTVPN_PORT_8080}
+    logging:
+      driver: json-file
+      options:
+        max-file: ${DOCKERLOGGING_MAXFILE}
+        max-size: ${DOCKERLOGGING_MAXSIZE}
+    privileged: true
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: "unless-stopped" 
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${DOCKERCONFDIR}/qbittorrentvpn:/config
+      - ${DOCKERSTORAGEDIR}:/storage
+      - ${VPN_OVPNDIR}:/config/openvpn
+      - ${VPN_WGDIR}:/config/wireguard
+    networks:
+      - media
+    labels:
+      com.dockstarter.appinfo.deprecated: "false"
+      com.dockstarter.appinfo.description: "qBittorrent, OpenVPN and Privoxy"
+      com.dockstarter.appinfo.nicename: "qBittorrentVPN"
+      com.dockstarter.appvars.qbittorrentvpn_enable_privoxy: "no"
+  plex:
+    container_name: plex
+    image: lscr.io/linuxserver/plex:latest
+    ports:
+      - 1900:1900/udp
+      - 3005:3005
+      - 32400:32400
+      - 32410:32410/udp
+      - 32412:32412/udp
+      - 32413:32413/udp
+      - 32414:32414/udp
+      - 32469:32469
+      - 33400:33400
+      - 8324:8324
+    hostname: ${DOCKERHOSTNAME}
+    environment:
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - TZ=${TZ}
+      - PLEX_CLAIM="https://plex.tv/claim"
+      - VERSION="docker"
+    logging:
+      driver: json-file
+      options:
+        max-file: ${DOCKERLOGGING_MAXFILE}
+        max-size: ${DOCKERLOGGING_MAXSIZE}
+    restart: "unless-stopped" 
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${DOCKERCONFDIR}/plex:/config
+      - ${DOCKERSTORAGEDIR}:/storage
+    networks:
+      - media
+    labels:
+      com.dockstarter.appinfo.deprecated: "false"
+      com.dockstarter.appinfo.description: "Organizes all of your video, music and photo collections"
+      com.dockstarter.appinfo.nicename: "Plex"
+  radarr:
+    container_name: radarr
+    image: lscr.io/linuxserver/radarr:latest
+    ports:
+      - 7878:7878
+    hostname: ${DOCKERHOSTNAME}
+    environment:
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - TZ=${TZ}
+    logging:
+      driver: json-file
+      options:
+        max-file: ${DOCKERLOGGING_MAXFILE}
+        max-size: ${DOCKERLOGGING_MAXSIZE}
+    restart: "unless-stopped" 
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${DOCKERCONFDIR}/radarr:/config
+      - ${DOCKERSTORAGEDIR}:/storage
+    networks:
+      - media
+    labels:
+      com.dockstarter.appinfo.deprecated: "false"
+      com.dockstarter.appinfo.description: "Automatically download movies via Usenet and BitTorrent"
+      com.dockstarter.appinfo.nicename: "Radarr"
+  sonarr:
+    container_name: sonarr
+    image: lscr.io/linuxserver/sonarr:latest
+    ports:
+      - 8989:8989
+    hostname: ${DOCKERHOSTNAME}
+    environment:
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - TZ=${TZ}
+    logging:
+      driver: json-file
+      options:
+        max-file: ${DOCKERLOGGING_MAXFILE}
+        max-size: ${DOCKERLOGGING_MAXSIZE}
+    restart: "unless-stopped" 
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${DOCKERCONFDIR}/sonarr:/config
+      - ${DOCKERSTORAGEDIR}:/storage
+    networks:
+      - media
+    labels:
+      com.dockstarter.appinfo.deprecated: "false"
+      com.dockstarter.appinfo.description: "Smart TV show PVR via Usenet and BitTorrent"
+      com.dockstarter.appinfo.nicename: "Sonarr"
+  prowlarr:
+    container_name: prowlarr
+    image: lscr.io/linuxserver/prowlarr:latest
+    ports:
+      - 9696:9696
+    hostname: ${DOCKERHOSTNAME}
+    environment:
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - TZ=${TZ}
+    logging:
+      driver: json-file
+      options:
+        max-file: ${DOCKERLOGGING_MAXFILE}
+        max-size: ${DOCKERLOGGING_MAXSIZE}
+    restart: "unless-stopped" 
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${DOCKERCONFDIR}/prowlarr:/config
+      - ${DOCKERSTORAGEDIR}:/storage
+    networks:
+      - media
+    labels:
+      com.dockstarter.appinfo.deprecated: "false"
+      com.dockstarter.appinfo.description: "Indexer manager/proxy to integrate with your various PVR apps."
+      com.dockstarter.appinfo.nicename: "Prowlarr"
+  readarr:
+    container_name: readarr
+    image: lscr.io/linuxserver/readarr:develop
+    ports:
+      - 8787:8787
+    hostname: ${DOCKERHOSTNAME}
+    environment:
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - TZ=${TZ}
+    logging:
+      driver: json-file
+      options:
+        max-file: ${DOCKERLOGGING_MAXFILE}
+        max-size: ${DOCKERLOGGING_MAXSIZE}
+    restart: "unless-stopped" 
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${DOCKERCONFDIR}/readarr:/config
+      - ${DOCKERSTORAGEDIR}:/storage
+    networks:
+      - media
+    labels:
+      com.dockstarter.appinfo.deprecated: "false"
+      com.dockstarter.appinfo.description: "eBook and audiobook collection manager for Usenet and BitTorrent users."
+      com.dockstarter.appinfo.nicename: "Readarr"
+  requestrr:
+    container_name: requestrr
+    image: lscr.io/linuxserver/requestrr:latest
+    ports:
+      - 4545:4545
+    hostname: ${DOCKERHOSTNAME}
+    environment:
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - TZ=${TZ}
+    logging:
+      driver: json-file
+      options:
+        max-file: ${DOCKERLOGGING_MAXFILE}
+        max-size: ${DOCKERLOGGING_MAXSIZE}
+    restart: "unless-stopped" 
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${DOCKERCONFDIR}/requestrr:/config
+      - ${DOCKERSTORAGEDIR}:/storage
+    networks:
+      - media
+    labels:
+      com.dockstarter.appinfo.deprecated: "true"
+      com.dockstarter.appinfo.description: "(DEPRECATED) Use Doplarr"
+      com.dockstarter.appinfo.nicename: "Requestrr"
+  bazaar:
+  tdarr:
+
+
+networks:
+  media:
+
+# volumes:
+#   # static should probably be anon so we can recreate it easily
+#   static_volume:
+#   media_volume:
