@@ -1,0 +1,72 @@
+server {
+    listen ${QBITTORRENTVPN_PORT_8080};
+    server_name qbit-nginx;
+
+    location / {
+        proxy_pass         http://qbit:${QBITTORRENTVPN_PORT_8080}/;
+        proxy_http_version 1.1;
+
+        proxy_set_header   Host               qbit:${QBITTORRENTVPN_PORT_8080};
+        proxy_set_header   X-Forwarded-Host   $http_host;
+        proxy_set_header   X-Forwarded-For    $remote_addr;
+
+        # not used by qBittorrent
+        proxy_set_header   X-Forwarded-Proto  $scheme;
+        proxy_set_header   X-Real-IP          $remote_addr;
+
+        # optionally, you can adjust the POST request size limit, to allow adding a lot of torrents at once
+        client_max_body_size 100M;
+    }
+}
+
+server {
+    listen ${PLEX_WEB_PORT};
+    server_name plex-nginx;
+
+    location / {
+        proxy_pass         http://plex:${PLEX_WEB_PORT}/;
+
+        # Disable buffering - send to the client as soon as the data is received from Plex.
+        proxy_redirect off;
+        proxy_buffering off;
+        proxy_read_timeout 3600s; # Timeout after 1 hour
+        proxy_send_timeout 36000s;
+        proxy_connect_timeout 36000s;
+
+        
+        proxy_set_header        host                 "";
+        proxy_set_header        referer                 "";
+        proxy_set_header        origin                 "";
+        proxy_set_header        X-Forwarded-Host   "";
+        proxy_set_header        X-Forwarded-For    "";
+        proxy_set_header        X-Forwarded-Port    "";
+        proxy_set_header        X-Real-IP          "";
+
+        # "The server "earth" does not have a valid connection for casting"
+        # Forces Plex to see all connections from the proxy as local
+        # https://www.reddit.com/r/PleX/comments/vjky6y/cant_cast_since_accessing_plex_from_custom_domain/
+        #proxy_set_header Host $host;
+        ##proxy_set_header Origin $scheme://$host:$server_port;
+        #proxy_set_header X-Real-IP $remote_addr;
+        #proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        #proxy_set_header X-Plex-Client-Identifier $http_x_plex_client_identifier;
+
+        # Enable websockets
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_cache_bypass $http_upgrade;
+
+        #proxy_set_header   Host               plex:${PLEX_WEB_PORT};
+        #proxy_set_header   X-Forwarded-Host   $http_host;
+        #proxy_set_header   X-Forwarded-For    $remote_addr;
+
+        # not used by qBittorrent
+        #proxy_set_header   X-Forwarded-Proto  $scheme;
+        #proxy_set_header   X-Real-IP          $remote_addr;
+
+        # proxy_set_header   Host               localhost;
+        # proxy_set_header   Referer            localhost;
+        # proxy_set_header   Origin             $scheme://localhost:$server_port;
+    }
+}
