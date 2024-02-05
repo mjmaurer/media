@@ -4,6 +4,7 @@ let
     stdenv = pkgs.stdenv;
 in pkgs.mkShell {
     buildInputs = with pkgs; [
+        curl
     ];
     shellHook =
     ''

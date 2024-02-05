@@ -56,17 +56,65 @@ services:
       com.dockstarter.appinfo.deprecated: "false"
       com.dockstarter.appinfo.description: "qBittorrent, OpenVPN and Privoxy"
       com.dockstarter.appinfo.nicename: "qBittorrentVPN"
+  sab:
+    image: ghcr.io/binhex/arch-sabnzbdvpn:latest
+    ports:
+      - 8090:8090
+      - 8091:8080
+      - ${SAB_PORT_8118}:8118
+    hostname: ${DOCKERHOSTNAME}
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    container_name: sab
+    environment:
+      - ENABLE_PRIVOXY=${SAB_ENABLE_PRIVOXY}
+      - LAN_NETWORK=${LAN_NETWORK}
+      - NAME_SERVERS=${NS1},${NS2}
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - TZ=${TZ}
+      - STRICT_PORT_FORWARD=yes
+      - VPN_INPUT_PORTS=1234
+      - VPN_OUTPUT_PORTS=5678
+      - DEBUG=true
+      - UMASK=000
+      - VPN_CLIENT=${VPN_CLIENT}
+      - VPN_ENABLED=no
+      - VPN_OPTIONS=${VPN_OPTIONS}
+      - VPN_PASS=${VPN_PASS}
+      - VPN_PROV=${VPN_PROV}
+      - VPN_USER=${VPN_USER}
+    logging:
+      driver: json-file
+      options:
+        max-file: ${DOCKERLOGGING_MAXFILE}
+        max-size: ${DOCKERLOGGING_MAXSIZE}
+    privileged: true
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: "unless-stopped" 
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${HOST_CONF_DIR}/sabnzbdvpn:/config
+      - ${HOST_DATA_DIR}/usenet:${CONTAINER_DATA_DIR}/usenet
+      - ${VPN_OVPNDIR}:/config/openvpn
+      - ${VPN_WGDIR}:/config/wireguard
+    networks:
+      - media
   media-nginx:
     image: nginx:latest
     container_name: media-nginx
     ports:
       - ${QBITTORRENTVPN_PROXY_PORT}:${QBITTORRENTVPN_PORT_8080}
-      - ${PLEX_WEB_PORT}:${PLEX_WEB_PORT}
+      - ${SAB_PROXY_PORT}:${SAB_PORT_8080}
+      # - ${PLEX_WEB_PORT}:${PLEX_WEB_PORT}
     volumes:
       - ./nginx/nginx.conf.template:/etc/nginx/templates/nginx.conf.template
     restart: unless-stopped
     environment:
       QBITTORRENTVPN_PORT_8080: ${QBITTORRENTVPN_PORT_8080}
+      SAB_PORT_8080: ${SAB_PORT_8080}
       PLEX_WEB_PORT: ${PLEX_WEB_PORT}
       NGINX_ENVSUBST_TEMPLATE_SUFFIX: ".template"
     networks:
@@ -93,8 +141,9 @@ services:
   #   volumes:
   #     - /etc/localtime:/etc/localtime:ro
   #     - ${HOST_CONF_DIR}/jellyfin:/config
-  #     - ${DOCKERSTORAGEDIR}:/storage
-  #     - ${DOCKERSTORAGEDIR}/transcode:/transcode
+  #     - ${HOST_DATA_DIR}/media:/data/media
+  #     # - ${DOCKERSTORAGEDIR}:/storage
+  #     # - ${DOCKERSTORAGEDIR}/transcode:/transcode
   #   networks:
   #     - media
   plex:
@@ -103,7 +152,7 @@ services:
     ports:
       - 1900:1900/udp
       - 3005:3005
-      # - ${PLEX_WEB_PORT}:32400
+      - ${PLEX_WEB_PORT}:32400
       - 32410:32410/udp
       - 32412:32412/udp
       - 32413:32413/udp
@@ -243,6 +292,29 @@ services:
       # - ${DOCKERSTORAGEDIR}:/storage
     networks:
       - media
+  # jellyseerr:
+  #   container_name: jellyseerr
+  #   image: fallenbagel/jellyseerr
+  #   ports:
+  #     - 5055:5055
+  #   hostname: ${DOCKERHOSTNAME}
+  #   environment:
+  #     - PGID=${PGID}
+  #     - PUID=${PUID}
+  #     - TZ=${TZ}
+  #   logging:
+  #     driver: json-file
+  #     options:
+  #       max-file: ${DOCKERLOGGING_MAXFILE}
+  #       max-size: ${DOCKERLOGGING_MAXSIZE}
+  #   restart: unless-stopped
+  #   volumes:
+  #     - /etc/localtime:/etc/localtime:ro
+  #     - ${HOST_CONF_DIR}/jellyseerr:/app/config
+  #     - ${HOST_DATA_DIR}:${CONTAINER_DATA_DIR}
+  #     # - ${DOCKERSTORAGEDIR}:/storage
+  #   networks:
+  #     - media
   readarr:
     container_name: readarr
     image: lscr.io/linuxserver/readarr:develop
@@ -270,6 +342,28 @@ services:
       com.dockstarter.appinfo.deprecated: "false"
       com.dockstarter.appinfo.description: "eBook and audiobook collection manager for Usenet and BitTorrent users."
       com.dockstarter.appinfo.nicename: "Readarr"
+  bazarr:
+    container_name: bazarr
+    image: lscr.io/linuxserver/bazarr:latest 
+    ports:
+      - 6767:6767
+    hostname: ${DOCKERHOSTNAME}
+    environment:
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - TZ=${TZ}
+    logging:
+      driver: json-file
+      options:
+        max-file: ${DOCKERLOGGING_MAXFILE}
+        max-size: ${DOCKERLOGGING_MAXSIZE}
+    restart: "unless-stopped" 
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${HOST_CONF_DIR}/bazarr:/config
+      - ${HOST_DATA_DIR}/media:${CONTAINER_DATA_DIR}/media
+    networks:
+      - media
   requestrr:
     container_name: requestrr
     image: thomst08/requestrr
@@ -297,6 +391,26 @@ services:
       com.dockstarter.appinfo.deprecated: "true"
       com.dockstarter.appinfo.description: "(DEPRECATED) Use Doplarr"
       com.dockstarter.appinfo.nicename: "Requestrr"
+  wizarr:
+    container_name: wizarr
+    image: ghcr.io/wizarrrr/wizarr
+    ports:
+      - 5690:5690
+    hostname: ${DOCKERHOSTNAME}
+    environment:
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - TZ=${TZ}
+    logging:
+      driver: json-file
+      options:
+        max-file: ${DOCKERLOGGING_MAXFILE}
+        max-size: ${DOCKERLOGGING_MAXSIZE}
+    restart: "unless-stopped" 
+    volumes:
+      - ${HOST_CONF_DIR}/wizarr:/data/database
+    networks:
+      - media
   # bazaar:
   # tdarr:
 
