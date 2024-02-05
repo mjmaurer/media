@@ -411,6 +411,25 @@ services:
       - ${HOST_CONF_DIR}/wizarr:/data/database
     networks:
       - media
+  flaresolverr:
+    container_name: flaresolverr
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    ports:
+      - 8191:8191
+    hostname: ${DOCKERHOSTNAME}
+    environment:
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - TZ=${TZ}
+      - LOG_LEVEL=info
+    logging:
+      driver: json-file
+      options:
+        max-file: ${DOCKERLOGGING_MAXFILE}
+        max-size: ${DOCKERLOGGING_MAXSIZE}
+    restart: "unless-stopped" 
+    networks:
+      - media
   # bazaar:
   # tdarr:
 
